@@ -21,5 +21,4 @@ on dtoa-benchmark.
 | schubfach      | 24.822    | 35.29x   |
 | fmt            | 22.302    | 39.28x   |
 | zmij           | 16.648    | 52.62x   |
-| dragonbox      | 13.843    | 63.28x   |
 | null           | 0.931     | 941.32x  |
