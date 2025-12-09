@@ -28,19 +28,20 @@ on dtoa-benchmark.
 
 | Function       | Time (ns) | Speedup  |
 |----------------|----------:|---------:|
-| ostringstream  | 883.690   | 1.00x    |
-| sprintf        | 736.937   | 1.20x    |
-| doubleconv     | 83.762    | 10.55x   |
-| to_chars       | 43.272    | 20.42x   |
-| ryu            | 37.201    | 23.75x   |
-| schubfach      | 24.747    | 35.71x   |
-| fmt            | 22.284    | 39.66x   |
-| dragonbox      | 20.689    | 42.71x   |
-| zmij           | 13.581    | 65.07x   |
-| null           | 0.930     | 950.20x  |
+| ostringstream  | 879.662   | 1.00x    |
+| sprintf        | 737.575   | 1.19x    |
+| doubleconv     | 86.517    | 10.17x   |
+| to_chars       | 42.691    | 20.61x   |
+| ryu            | 38.072    | 23.11x   |
+| schubfach      | 24.847    | 35.40x   |
+| fmt            | 22.802    | 38.58x   |
+| dragonbox      | 20.986    | 41.92x   |
+| zmij           | 12.742    | 69.04x   |
+| null           | 0.932     | 943.49x  |
 
-<img width="762" height="335" alt="image" src="https://github.com/user-attachments/assets/c700dedd-b6ff-4fb6-ab46-02c2996bb9ae" />
+<img width="788" height="347" alt="image" src="https://github.com/user-attachments/assets/0e3de579-09b7-448e-b1de-b247a31c83c4" />
 
-<img width="879" height="666" alt="image" src="https://github.com/user-attachments/assets/54bf2057-258f-43aa-bcc5-bddd3e85cab6" />
+<img width="882" height="666" alt="image" src="https://github.com/user-attachments/assets/7119c447-6cb2-4b04-9e75-33c19dbf75fb" />
+
 
 
