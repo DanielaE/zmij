@@ -8,6 +8,19 @@ Improvements:
 * Faster division and modulo
 * More efficient digit generation
 
+## Usage
+
+#include "zmij.h"
+#include <stdio.h>
+
+int main() {
+  char buf[zmij::buffer_size];
+  schubfach::dtoa(6.62607015e-34, buf);
+  puts(buf);
+}
+
+## Performance
+
 More than 2x faster than Ryu and 50% faster than [Schubfach](https://github.com/vitaut/schubfach)
 on dtoa-benchmark.
 
