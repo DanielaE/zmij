@@ -23,7 +23,7 @@ int main() {
 
 ## Performance
 
-More than 2x faster than Ryu and 50% faster than [Schubfach](https://github.com/vitaut/schubfach)
+More than 2.5x faster than Ryu and 80% faster than [Schubfach](https://github.com/vitaut/schubfach)
 on dtoa-benchmark.
 
 | Function       | Time (ns) | Speedup  |
