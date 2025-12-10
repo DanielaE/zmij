@@ -25,6 +25,9 @@ TEST(zmij_test, inf) {
 TEST(zmij_test, shorter) {
   // Schubfach would pick a shorter underestimate u'.
   EXPECT_EQ(dtoa(-4.932096661796888e-226), "-4.932096661796888e-226");
+
+  // Schubfach would pick a shorter overestimate w'.
+  EXPECT_EQ(dtoa(3.439070283483335e+35), "3.439070283483335e+35");
 }
 
 auto main(int argc, char** argv) -> int {
