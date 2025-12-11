@@ -805,7 +805,8 @@ void write(char* buffer, uint64_t dec_sig, int dec_exp) noexcept {
 namespace zmij {
 
 void dtoa(double value, char* buffer) noexcept {
-  uint64_t bits = std::bit_cast<uint64_t>(value);
+  uint64_t bits = 0;
+  memcpy(&bits, &value, sizeof(value));
   *buffer = '-';
   buffer += bits >> 63;
 
