@@ -11,10 +11,11 @@ auto dtoa(double value) -> std::string {
 }
 
 TEST(zmij_test, umul192_upper64_modified) {
-  EXPECT_EQ(umul192_upper64_modified(0x7fbbd8fe5f5e6e27, 0x497a3a2704eec3df,
+  auto pow10 = pow10_significands[0];
+  EXPECT_EQ(umul192_upper64_modified(pow10.hi, pow10.lo,
                                      0x1234567890abcdef << 2),
             0x24554a3ce60a45f5);
-  EXPECT_EQ(umul192_upper64_modified(0x7fbbd8fe5f5e6e27, 0x497a3a2704eec3df,
+  EXPECT_EQ(umul192_upper64_modified(pow10.hi, pow10.lo,
                                      0x1234567890abce16 << 2),
             0x24554a3ce60a4643);
 }
