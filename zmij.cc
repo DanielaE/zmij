@@ -713,13 +713,13 @@ const char num_trailing_zeros[] =
     "\1\0\0\0\0\0\0\0\0\0\1\0\0\0\0\0\0\0\0\0"
     "\1\0\0\0\0\0\0\0\0\0\1\0\0\0\0\0\0\0\0\0";
 
-struct div_mod_result {
+struct divmod_result {
   uint32_t div;
   uint32_t mod;
 };
 
 // Returns {value / 100, value % 100} correct for values of up to 4 digits.
-inline auto divmod100(uint32_t value) noexcept -> div_mod_result {
+inline auto divmod100(uint32_t value) noexcept -> divmod_result {
   assert(value < 10'000);
   constexpr int exp = 19;  // 19 is faster or equal to 12 even for 3 digits.
   constexpr int sig = (1 << exp) / 100 + 1;
