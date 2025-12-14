@@ -701,9 +701,22 @@ inline auto digits2(size_t value) noexcept -> const char* {
   return &data[value * 2];
 }
 
-// MSVC makes lzcnt available always, but it's not constexpr
-inline auto lzcntl(uint64_t x) noexcept -> size_t
-{
+struct divmod_result {
+  uint32_t div;
+  uint32_t mod;
+};
+
+// Returns {value / 100, value % 100} correct for values of up to 4 digits.
+inline auto divmod100(uint32_t value) noexcept -> divmod_result {
+  assert(value < 10'000);
+  constexpr int exp = 19;  // 19 is faster or equal to 12 even for 3 digits.
+  constexpr int sig = (1 << exp) / 100 + 1;
+  uint32_t div = (value * sig) >> exp;  // value / 100
+  return {div, value - div * 100};
+}
+
+// MSVC makes lzcnt available always, but it's not constexpr.
+inline auto lzcntl(uint64_t x) noexcept -> size_t {
 #ifdef _MSC_VER
   return _lzcnt_u64(x);
 #else
@@ -733,29 +746,16 @@ inline auto count_trailing_nonzeros(uint64_t x) noexcept -> size_t {
   // Additionally, the bsr instruction requires a zero check.  Since the
   // high bit is never set we can avoid the zero check by shifting the
   // datum left by one and using XOR to both remove the 0x30s and insert
-  // a sentinel bit at the end. 
+  // a sentinel bit at the end.
   return size_t(70 - lzcntl(x << 1 ^ (0x30303030'30303030ull << 1 | 1))) / 8;
-}
-
-struct divmod_result {
-  uint32_t div;
-  uint32_t mod;
-};
-
-// Returns {value / 100, value % 100} correct for values of up to 4 digits.
-inline auto divmod100(uint32_t value) noexcept -> divmod_result {
-  assert(value < 10'000);
-  constexpr int exp = 19;  // 19 is faster or equal to 12 even for 3 digits.
-  constexpr int sig = (1 << exp) / 100 + 1;
-  uint32_t div = (value * sig) >> exp;  // value / 100
-  return {div, value - div * 100};
 }
 
 inline void write2digits(char* buffer, uint32_t value) noexcept {
   memcpy(buffer, digits2(value), 2);
 }
 
-auto write8digits(uint32_t aa, uint32_t bb, uint32_t cc, uint32_t dd) noexcept -> uint64_t {
+auto write8digits(uint32_t aa, uint32_t bb, uint32_t cc, uint32_t dd) noexcept
+    -> uint64_t {
   uint16_t bitsaa;
   memcpy(&bitsaa, digits2(aa), 2);
   uint16_t bitsbb;
@@ -765,7 +765,8 @@ auto write8digits(uint32_t aa, uint32_t bb, uint32_t cc, uint32_t dd) noexcept -
   uint16_t bitsdd;
   memcpy(&bitsdd, digits2(dd), 2);
 
-  return uint64_t(bitsdd) << 48 | uint64_t(bitscc) << 32 | uint64_t(bitsbb) << 16 | bitsaa;
+  return uint64_t(bitsdd) << 48 | uint64_t(bitscc) << 32 |
+         uint64_t(bitsbb) << 16 | bitsaa;
 }
 
 // Writes a significand consisting of 16 or 17 decimal digits and removes
@@ -786,23 +787,20 @@ auto write_significand(char* buffer, uint64_t value) noexcept -> char* {
   buffer += a != 0;
 
   // Use an intermediate uint64_t to make sure that the compiler constructs
-  // the value in a register.  This way the buffer is written to memory in
+  // the value in a register. This way the buffer is written to memory in
   // one go and count_trailing_nonzeros doesn't have to load from memory.
   uint64_t bits = write8digits(bb, cc, dd, ee);
   memcpy(buffer, &bits, 8);
-
-  if (ffgghhii == 0) [[unlikely]] {
-    return buffer + count_trailing_nonzeros(bits);
-  }
+  if (ffgghhii == 0) return buffer + count_trailing_nonzeros(bits);
 
   buffer += 8;
   uint32_t ffgg = ffgghhii / 10'000;
   uint32_t hhii = ffgghhii % 10'000;
   auto [ff, gg] = divmod100(ffgg);
   auto [hh, ii] = divmod100(hhii);
-  uint64_t bits2 = write8digits(ff, gg, hh, ii);
-  memcpy(buffer, &bits2, 8);
-  return buffer + count_trailing_nonzeros(bits2);
+  bits = write8digits(ff, gg, hh, ii);
+  memcpy(buffer, &bits, 8);
+  return buffer + count_trailing_nonzeros(bits);
 }
 
 // Writes the decimal FP number dec_sig * 10**dec_exp to buffer.
