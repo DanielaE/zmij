@@ -832,7 +832,7 @@ void dtoa(double value, char* buffer) noexcept {
       return;
     }
     // Handle subnormals.
-    bin_sig ^= implicit_bit;
+    bin_sig |= implicit_bit;
     bin_exp = 1;
     regular = true;
   }
