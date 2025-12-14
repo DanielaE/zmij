@@ -37,7 +37,7 @@ using uint128_t = unsigned __int128;
 using uint128_t = uint128;
 #endif  // __SIZEOF_INT128__
 
-// 126-bit significands of overestimates of powers of 10.
+// 126-bit significands of strict overestimates of powers of 10.
 // Generated with gen-pow10.py.
 const uint128 pow10_significands[] = {
     {0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7c},  // -292
