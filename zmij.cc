@@ -757,7 +757,8 @@ inline auto count_trailing_nonzeros(uint64_t x) noexcept -> size_t {
   // high bit is never set we can avoid the zero check by shifting the
   // datum left by one and using XOR to both remove the 0x30s and insert
   // a sentinel bit at the end.
-  return size_t(70 - count_lzero(x << 1 ^ (0x30303030'30303030ull << 1 | 1))) / 8;
+  constexpr uint64_t mask_with_sentinel = (0x30303030'30303030ull << 1) | 1;
+  return size_t(70 - count_lzero((x << 1) ^ mask_with_sentinel)) / 8;
 }
 
 inline void write2digits(void* buffer, uint32_t value) noexcept {
