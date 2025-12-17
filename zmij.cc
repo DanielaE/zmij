@@ -681,8 +681,9 @@ inline auto umul128(uint64_t x, uint64_t y) noexcept -> uint128_t {
 
 inline auto umul192_upper128(uint64_t x_hi, uint64_t x_lo, uint64_t y) noexcept
     -> uint128 {
-  uint128_t result = uint128_t(x_hi) * y + ((uint128_t(x_lo) * y) >> 64);
-  return {uint64_t(result >> 64), uint64_t(result)};
+  uint128_t p = umul128(x_hi, y);
+  uint64_t lo = uint64_t(p) + uint64_t(umul128(x_lo, y) >> 64);
+  return {uint64_t(p >> 64) + (lo < uint64_t(p)), lo};
 }
 
 // Computes upper 64 bits of multiplication of x and y, discards the least
