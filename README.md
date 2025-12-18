@@ -75,3 +75,10 @@ taking the best of 3 runs.
 * Fewer conditional branches
 * More efficient significand and exponent output
 * Simpler storage of powers of 10 significands
+
+## Name
+
+Żmij (pronounced roughly zhmeey or more precisely /ʐmij/) is a Polish word that refers
+to a mythical dragon- or serpent-like creature. This continues the dragon theme [started
+by Steele and White](https://fmt.dev/papers/p372-steele.pdf). Nice feature of this name
+is that it has a floating point in it.
