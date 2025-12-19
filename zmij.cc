@@ -874,7 +874,7 @@ void write(char* buffer, uint64_t dec_sig, int dec_exp) noexcept {
 namespace zmij {
 
 void dtoa(double value, char* buffer) noexcept {
-  static_assert(std::numeric_limits<double>::is_iec559);
+  static_assert(std::numeric_limits<double>::is_iec559, "IEEE 754 required");
   constexpr int num_bits = sizeof(value) * CHAR_BIT;
   uint64_t bits = 0;
   memcpy(&bits, &value, sizeof(value));
@@ -939,20 +939,20 @@ void dtoa(double value, char* buffer) noexcept {
   // has a fixed 128-bit fractional part. For example, 3 * 2**59 and 3 * 2**60
   // both have dec_exp = 2 and dividing them by 10**dec_exp would have the
   // decimal point in different (bit) positions without the shift:
-  //   3 * 2**59 / 100 = 1.72...e+16 (shift = 1 + 1)
-  //   3 * 2**60 / 100 = 3.45...e+16 (shift = 2 + 1)
-  int shift = bin_exp + pow10_bin_exp + 1;
+  //   3 * 2**59 / 100 = 1.72...e+16 (exp_shift = 1 + 1)
+  //   3 * 2**60 / 100 = 3.45...e+16 (exp_shift = 2 + 1)
+  int exp_shift = bin_exp + pow10_bin_exp + 1;
 
   if (regular) [[likely]] {
     auto [integral, fractional] =
-        umul192_upper128(pow10_hi, pow10_lo, bin_sig << shift);
+        umul192_upper128(pow10_hi, pow10_lo, bin_sig << exp_shift);
     uint64_t digit = integral % 10;
 
     constexpr int num_fractional_bits = 60;
     constexpr uint64_t ten = uint64_t(10) << num_fractional_bits;
     // Fixed-point remainder of the scaled significand modulo 10.
     uint64_t rem10 = (digit << num_fractional_bits) | (fractional >> 4);
-    uint64_t half_ulp = pow10_hi >> (5 - shift);
+    uint64_t half_ulp = pow10_hi >> (5 - exp_shift);
     uint64_t upper = rem10 + half_ulp;
 
     // An optimization from yy_double by Yaoyuan Guo:
@@ -976,9 +976,9 @@ void dtoa(double value, char* buffer) noexcept {
   // Compute the estimates of lower and upper bounds of the rounding interval
   // by multiplying them by the power of 10 and applying modified rounding.
   uint64_t lsb = bin_sig & 1;
-  uint64_t lower = (bin_sig_shifted - (regular + 1)) << shift;
+  uint64_t lower = (bin_sig_shifted - (regular + 1)) << exp_shift;
   lower = umul192_upper64_inexact_to_odd(pow10_hi, pow10_lo, lower) + lsb;
-  uint64_t upper = (bin_sig_shifted + 2) << shift;
+  uint64_t upper = (bin_sig_shifted + 2) << exp_shift;
   upper = umul192_upper64_inexact_to_odd(pow10_hi, pow10_lo, upper) - lsb;
 
   // The idea of using a single shorter candidate is by Cassio Neri.
@@ -987,7 +987,7 @@ void dtoa(double value, char* buffer) noexcept {
   if ((shorter << 2) >= lower) return write(buffer, shorter, dec_exp);
 
   uint64_t scaled_sig = umul192_upper64_inexact_to_odd(
-      pow10_hi, pow10_lo, bin_sig_shifted << shift);
+      pow10_hi, pow10_lo, bin_sig_shifted << exp_shift);
   uint64_t dec_sig_under = scaled_sig >> 2;
   uint64_t dec_sig_over = dec_sig_under + 1;
 
