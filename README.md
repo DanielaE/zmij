@@ -63,6 +63,9 @@ Compile time is ~60ms by default and ~68ms with optimizations enabled as measure
 
 taking the best of 3 runs.
 
+## Other languages
+
+* Rust: https://docs.rs/zmij/latest/zmij/index.html
 
 ## Differences from Schubfach
 
