@@ -46,6 +46,11 @@ TEST(zmij_test, inf) {
   EXPECT_EQ(dtoa(-std::numeric_limits<double>::infinity()), "-inf");
 }
 
+TEST(zmij_test, nan) {
+  EXPECT_EQ(dtoa(std::numeric_limits<double>::quiet_NaN()), "nan");
+  EXPECT_EQ(dtoa(-std::numeric_limits<double>::quiet_NaN()), "-nan");
+}
+
 TEST(zmij_test, shorter) {
   // A possibly shorter underestimate is picked (u' in Schubfach).
   EXPECT_EQ(dtoa(-4.932096661796888e-226), "-4.932096661796888e-226");
