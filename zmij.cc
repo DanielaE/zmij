@@ -824,6 +824,7 @@ auto write_significand(char* buffer, uint64_t value) noexcept -> char* {
   auto [a, bb] = divmod100(abb);
   auto [dd, ee] = divmod100(ddee);
 
+  char* start = buffer;
   *buffer = char('0' + a);
   buffer += a != 0;
 
@@ -832,7 +833,11 @@ auto write_significand(char* buffer, uint64_t value) noexcept -> char* {
   // one go and count_trailing_nonzeros doesn't have to load from memory.
   uint64_t digits = digits8_u64(bb, cc, dd, ee);
   memcpy(buffer, &digits, 8);
-  if (ffgghhii == 0) return buffer + count_trailing_nonzeros(digits);
+  if (ffgghhii == 0) {
+    buffer += count_trailing_nonzeros(digits);
+    buffer -= (buffer - start == 1) ? 1 : 0;
+    return buffer;
+  }
 
   buffer += 8;
   uint32_t ffgg = ffgghhii / 10'000;
