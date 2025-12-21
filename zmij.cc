@@ -849,68 +849,14 @@ auto write_significand(char* buffer, uint64_t value) noexcept -> char* {
   return buffer + count_trailing_nonzeros(digits);
 }
 
-// Writes the decimal FP number dec_sig * 10**dec_exp to buffer.
-void write(char* buffer, uint64_t dec_sig, int dec_exp) noexcept {
-  dec_exp += 15 + (dec_sig >= uint64_t(1e16));
+constexpr int num_bits = sizeof(double) * CHAR_BIT;
 
-  char* start = buffer;
-  buffer = write_significand(buffer + 1, dec_sig);
-  start[0] = start[1];
-  start[1] = '.';
+struct fp {
+  uint64_t sig;
+  int exp;
+};
 
-  *buffer++ = 'e';
-  char sign = '+';
-  if (dec_exp < 0) {
-    sign = '-';
-    dec_exp = -dec_exp;
-  }
-  *buffer++ = sign;
-  auto [a, bb] = divmod100(uint32_t(dec_exp));
-  *buffer = char('0' + a);
-  buffer += dec_exp >= 100;
-  memcpy(buffer, digits2(bb), 2);
-  buffer[2] = '\0';
-}
-
-}  // namespace
-
-namespace zmij {
-
-void dtoa(double value, char* buffer) noexcept {
-  static_assert(std::numeric_limits<double>::is_iec559, "IEEE 754 required");
-  constexpr int num_bits = sizeof(value) * CHAR_BIT;
-  uint64_t bits = 0;
-  memcpy(&bits, &value, sizeof(value));
-
-  *buffer = '-';
-  buffer += bits >> (num_bits - 1);
-
-  constexpr int num_sig_bits = std::numeric_limits<double>::digits - 1;
-  constexpr uint64_t implicit_bit = uint64_t(1) << num_sig_bits;
-  uint64_t bin_sig = bits & (implicit_bit - 1);  // binary significand
-  bool regular = bin_sig != 0;
-
-  constexpr int num_exp_bits = num_bits - num_sig_bits - 1;
-  constexpr int exp_mask = (1 << num_exp_bits) - 1;
-  constexpr int exp_bias = (1 << (num_exp_bits - 1)) - 1;
-  int bin_exp = int(bits >> num_sig_bits) & exp_mask;  // binary exponent
-  if (((bin_exp + 1) & exp_mask) <= 1) [[unlikely]] {
-    if (bin_exp != 0) {
-      memcpy(buffer, bin_sig == 0 ? "inf" : "nan", 4);
-      return;
-    }
-    if (bin_sig == 0) {
-      memcpy(buffer, "0", 2);
-      return;
-    }
-    // Handle subnormals.
-    bin_sig |= implicit_bit;
-    bin_exp = 1;
-    regular = true;
-  }
-  bin_sig ^= implicit_bit;
-  bin_exp -= num_sig_bits + exp_bias;
-
+auto to_decimal(uint64_t bin_sig, int bin_exp, bool regular) -> fp {
   // Compute the decimal exponent as floor(log10(2**bin_exp)) if regular or
   // floor(log10(3/4 * 2**bin_exp)) otherwise, without branching.
   // log10_3_over_4_sig = round(log10(3/4) * 2**log10_2_exp)
@@ -970,9 +916,7 @@ void dtoa(double value, char* buffer) noexcept {
       bool round = (upper >> num_fractional_bits) >= 10;
       uint64_t shorter = integral - digit + round * 10;
       uint64_t longer = integral + (fractional >= (uint64_t(1) << 63));
-      return write(buffer,
-                   ((rem10 <= half_ulp10) + round != 0) ? shorter : longer,
-                   dec_exp);
+      return {((rem10 <= half_ulp10) + round != 0) ? shorter : longer, dec_exp};
     }
   }
 
@@ -993,7 +937,7 @@ void dtoa(double value, char* buffer) noexcept {
   // The idea of using a single shorter candidate is by Cassio Neri.
   // It is less or equal to the upper bound by construction.
   uint64_t shorter = 10 * ((upper >> 2) / 10);
-  if ((shorter << 2) >= lower) return write(buffer, shorter, dec_exp);
+  if ((shorter << 2) >= lower) return {shorter, dec_exp};
 
   uint64_t scaled_sig = umul192_upper64_inexact_to_odd(
       pow10_hi, pow10_lo, bin_sig_shifted << exp_shift);
@@ -1005,8 +949,67 @@ void dtoa(double value, char* buffer) noexcept {
   int64_t cmp = int64_t(scaled_sig - ((dec_sig_under + dec_sig_over) << 1));
   bool under_closer = cmp < 0 || (cmp == 0 && (dec_sig_under & 1) == 0);
   bool under_in = (dec_sig_under << 2) >= lower;
-  write(buffer, (under_closer & under_in) ? dec_sig_under : dec_sig_over,
-        dec_exp);
+  return {(under_closer & under_in) ? dec_sig_under : dec_sig_over, dec_exp};
+}
+
+}  // namespace
+
+namespace zmij {
+
+void dtoa(double value, char* buffer) noexcept {
+  static_assert(std::numeric_limits<double>::is_iec559, "IEEE 754 required");
+  uint64_t bits = 0;
+  memcpy(&bits, &value, sizeof(value));
+
+  *buffer = '-';
+  buffer += bits >> (num_bits - 1);
+
+  constexpr int num_sig_bits = std::numeric_limits<double>::digits - 1;
+  constexpr uint64_t implicit_bit = uint64_t(1) << num_sig_bits;
+  uint64_t bin_sig = bits & (implicit_bit - 1);  // binary significand
+  bool regular = bin_sig != 0;
+
+  constexpr int num_exp_bits = num_bits - num_sig_bits - 1;
+  constexpr int exp_mask = (1 << num_exp_bits) - 1;
+  constexpr int exp_bias = (1 << (num_exp_bits - 1)) - 1;
+  int bin_exp = int(bits >> num_sig_bits) & exp_mask;  // binary exponent
+  if (((bin_exp + 1) & exp_mask) <= 1) [[unlikely]] {
+    if (bin_exp != 0) {
+      memcpy(buffer, bin_sig == 0 ? "inf" : "nan", 4);
+      return;
+    }
+    if (bin_sig == 0) {
+      memcpy(buffer, "0", 2);
+      return;
+    }
+    // Handle subnormals.
+    bin_sig |= implicit_bit;
+    bin_exp = 1;
+    regular = true;
+  }
+  bin_sig ^= implicit_bit;
+  bin_exp -= num_sig_bits + exp_bias;
+
+  auto [dec_sig, dec_exp] = to_decimal(bin_sig, bin_exp, regular);
+  dec_exp += 15 + (dec_sig >= uint64_t(1e16));
+
+  char* start = buffer;
+  buffer = write_significand(buffer + 1, dec_sig);
+  start[0] = start[1];
+  start[1] = '.';
+
+  *buffer++ = 'e';
+  char sign = '+';
+  if (dec_exp < 0) {
+    sign = '-';
+    dec_exp = -dec_exp;
+  }
+  *buffer++ = sign;
+  auto [a, bb] = divmod100(uint32_t(dec_exp));
+  *buffer = char('0' + a);
+  buffer += dec_exp >= 100;
+  memcpy(buffer, digits2(bb), 2);
+  buffer[2] = '\0';
 }
 
 }  // namespace zmij
