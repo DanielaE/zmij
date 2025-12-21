@@ -856,6 +856,8 @@ struct fp {
   int exp;
 };
 
+// Converts a binary FP number bin_sig * 2**bin_exp to the shortest decimal
+// representation.
 auto to_decimal(uint64_t bin_sig, int bin_exp, bool regular) -> fp {
   // Compute the decimal exponent as floor(log10(2**bin_exp)) if regular or
   // floor(log10(3/4 * 2**bin_exp)) otherwise, without branching.
@@ -973,6 +975,7 @@ void dtoa(double value, char* buffer) noexcept {
   constexpr int exp_mask = (1 << num_exp_bits) - 1;
   constexpr int exp_bias = (1 << (num_exp_bits - 1)) - 1;
   int bin_exp = int(bits >> num_sig_bits) & exp_mask;  // binary exponent
+
   if (((bin_exp + 1) & exp_mask) <= 1) [[unlikely]] {
     if (bin_exp != 0) {
       memcpy(buffer, bin_sig == 0 ? "inf" : "nan", 4);
