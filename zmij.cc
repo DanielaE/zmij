@@ -18,6 +18,10 @@
 #  include <intrin.h>  // lzcnt/adc/umul128/umulh
 #endif
 
+#ifdef __clang__
+#  pragma clang diagnostic ignored "-Wc++17-extensions"
+#endif
+
 namespace {
 
 struct uint128 {
