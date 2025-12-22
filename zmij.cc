@@ -1016,7 +1016,7 @@ void dtoa(double value, char* buffer) noexcept {
   *buffer++ = 'e';
   *buffer++ = '+' + (dec_exp < 0) * ('-' - '+');
   int mask = dec_exp >> 31;
-  dec_exp = ((dec_exp + mask) ^ mask);  // absolute value
+  dec_exp = (dec_exp + mask) ^ mask;  // absolute value
   auto [a, bb] = divmod100(uint32_t(dec_exp));
   *buffer = char('0' + a);
   buffer += dec_exp >= 100;
