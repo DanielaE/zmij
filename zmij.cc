@@ -864,7 +864,8 @@ struct fp {
 
 // Converts a binary FP number bin_sig * 2**bin_exp to the shortest decimal
 // representation.
-auto to_decimal(uint64_t bin_sig, int bin_exp, bool regular) -> fp {
+template <typename UInt>
+auto to_decimal(UInt bin_sig, int bin_exp, bool regular) -> fp {
   // Compute the decimal exponent as floor(log10(2**bin_exp)) if regular or
   // floor(log10(3/4 * 2**bin_exp)) otherwise, without branching.
   // log10_3_over_4_sig = round(log10(3/4) * 2**log10_2_exp)
@@ -897,33 +898,33 @@ auto to_decimal(uint64_t bin_sig, int bin_exp, bool regular) -> fp {
   if (regular) [[likely]] {
     auto [integral, fractional] =
         umul192_upper128(pow10_hi, pow10_lo, bin_sig << exp_shift);
-    uint64_t digit = integral % 10;
+    UInt digit = integral % 10;
 
     // Switch to a fixed-point representation with the integral part in the
     // upper 4 bits and the rest being the fractional part.
     constexpr int num_integral_bits = 4;
     constexpr int num_fractional_bits = num_bits - num_integral_bits;
-    constexpr uint64_t ten = uint64_t(10) << num_fractional_bits;
+    constexpr UInt ten = UInt(10) << num_fractional_bits;
     // Fixed-point remainder of the scaled significand modulo 10.
-    uint64_t rem10 =
+    UInt rem10 =
         (digit << num_fractional_bits) | (fractional >> num_integral_bits);
     // dec_exp is chosen so that 10**dec_exp <= 2**bin_exp < 10**(dec_exp + 1).
     // Since 1ulp == 2**bin_exp it will be in the range [1, 10) after scaling by
     // 10**dec_exp. Add 1 to combine the shift with division by two.
-    uint64_t half_ulp10 = pow10_hi >> (num_integral_bits - exp_shift + 1);
-    uint64_t upper = rem10 + half_ulp10;
+    UInt half_ulp10 = pow10_hi >> (num_integral_bits - exp_shift + 1);
+    UInt upper = rem10 + half_ulp10;
 
     // An optimization from yy by Yaoyuan Guo:
     if (
         // Exact half-ulp tie when rounding to nearest integer.
-        fractional != (uint64_t(1) << 63) &&
+        fractional != (UInt(1) << 63) &&
         // Exact half-ulp tie when rounding to nearest 10.
         rem10 != half_ulp10 &&
         // Near-boundary case for rounding to nearest 10.
-        ten - upper > uint64_t(1)) [[likely]] {
+        ten - upper > UInt(1)) [[likely]] {
       bool round = (upper >> num_fractional_bits) >= 10;
-      uint64_t shorter = integral - digit + round * 10;
-      uint64_t longer = integral + (fractional >= (uint64_t(1) << 63));
+      UInt shorter = integral - digit + round * 10;
+      UInt longer = integral + (fractional >= (UInt(1) << 63));
       return {((rem10 <= half_ulp10) + round != 0) ? shorter : longer, dec_exp};
     }
   }
@@ -934,25 +935,25 @@ auto to_decimal(uint64_t bin_sig, int bin_exp, bool regular) -> fp {
 
   // Shift the significand so that boundaries are integer.
   constexpr int bound_shift = 2;
-  uint64_t bin_sig_shifted = bin_sig << bound_shift;
+  UInt bin_sig_shifted = bin_sig << bound_shift;
 
   // Compute the estimates of lower and upper bounds of the rounding interval
   // by multiplying them by the power of 10 and applying modified rounding.
-  uint64_t lsb = bin_sig & 1;
-  uint64_t lower = (bin_sig_shifted - (regular + 1)) << exp_shift;
+  UInt lsb = bin_sig & 1;
+  UInt lower = (bin_sig_shifted - (regular + 1)) << exp_shift;
   lower = umul192_upper64_inexact_to_odd(pow10_hi, pow10_lo, lower) + lsb;
-  uint64_t upper = (bin_sig_shifted + 2) << exp_shift;
+  UInt upper = (bin_sig_shifted + 2) << exp_shift;
   upper = umul192_upper64_inexact_to_odd(pow10_hi, pow10_lo, upper) - lsb;
 
   // The idea of using a single shorter candidate is by Cassio Neri.
   // It is less or equal to the upper bound by construction.
-  uint64_t shorter = 10 * ((upper >> bound_shift) / 10);
+  UInt shorter = 10 * ((upper >> bound_shift) / 10);
   if ((shorter << bound_shift) >= lower) return {shorter, dec_exp};
 
-  uint64_t scaled_sig = umul192_upper64_inexact_to_odd(
+  UInt scaled_sig = umul192_upper64_inexact_to_odd(
       pow10_hi, pow10_lo, bin_sig_shifted << exp_shift);
-  uint64_t dec_sig_under = scaled_sig >> bound_shift;
-  uint64_t dec_sig_over = dec_sig_under + 1;
+  UInt dec_sig_under = scaled_sig >> bound_shift;
+  UInt dec_sig_over = dec_sig_under + 1;
 
   // Pick the closest of dec_sig_under and dec_sig_over and check if it's in
   // the rounding interval.
