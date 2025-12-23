@@ -761,6 +761,8 @@ inline auto countl_zero(uint64_t x) noexcept -> int {
   unsigned long idx;
   _BitScanReverse64(&idx, x);
   return 63 - idx;
+#elif __has_builtin(__builtin_clzll)
+  return __builtin_clzll(x);
 #else
   // Unlike MSVC, clang and gcc recognize this implementation and replace
   // it with the assembly instructions which are appropriate for the
