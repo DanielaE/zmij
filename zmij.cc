@@ -16,8 +16,10 @@
 #include <limits>       // std::numeric_limits
 #include <type_traits>  // std::conditional_t
 
-#if __has_include(<arm_neon.h>)
-#  include <arm_neon.h>
+#if !defined(_MSC_VER) || defined(_M_ARM64) || defined(_M_ARM64EC)
+#  if __has_include(<arm_neon.h>)
+#    include <arm_neon.h>
+#  endif
 #endif
 
 #ifdef _MSC_VER
